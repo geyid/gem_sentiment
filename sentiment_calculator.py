@@ -55,7 +55,7 @@ def calculate_sentiment(df):
         0.30 * vol_factor +     # 波动率因子
         0.25 * down_factor +    # 放量下跌因子
         0.10 * panic_spread     # 恐慌扩散因子
-    ) * 55 + 30
+    ) * 55 + 40
     
     # 6. 添加市场情绪惯性因子（使用初始恐惧指数）
     momentum_factor = df['fear_initial'].shift(1) * 0.3 * np.sign(df['pct_change'])
