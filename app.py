@@ -58,7 +58,7 @@ with col1:
         height=400,
         xaxis_title="日期",
         yaxis_title="贪婪指数",
-        yaxis_range=[30, 100],
+        yaxis_range=[20, 100],
         hovermode="x"
     )
     st.plotly_chart(fig_greed, use_container_width=True)
@@ -77,7 +77,7 @@ with col2:
         height=400,
         xaxis_title="日期",
         yaxis_title="恐惧指数",
-        yaxis_range=[30, 100],
+        yaxis_range=[20, 100],
         hovermode="x"
     )
     st.plotly_chart(fig_fear, use_container_width=True)
