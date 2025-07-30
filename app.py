@@ -25,7 +25,7 @@ st.title("📈 创业板指情绪指数分析")
 st.markdown("基于市场行为量化贪婪与恐惧情绪")
 
 
-with st.expander("📖 图表交互操作指南", expanded=True):
+with st.expander("📖 用户操作指导", expanded=True):
     st.markdown("""
     <style>
     .instruction-img {
