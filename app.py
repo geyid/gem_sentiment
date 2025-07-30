@@ -3,13 +3,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+# 直接计算实时数据（推荐做法）
+from sentiment_calculator import get_cyb_data, calculate_sentiment
 
-from sentiment_calculator import update_data
-
-update_data()  # 自动更新 CSV 文件
-
-# 然后加载 CSV 文件等操作
-
+df = calculate_sentiment(get_cyb_data())
 
 
 

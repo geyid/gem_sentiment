@@ -47,7 +47,6 @@ def calculate_sentiment(df):
     
     return df.dropna()
 
-
 # 新增的 update_data 函数
 def update_data():
     if pd.Timestamp.now().hour > 15:
@@ -62,10 +61,10 @@ def update_data():
 
 
 
-
 # 主函数
 if __name__ == "__main__":
     cyb_data = get_cyb_data()
     sentiment_data = calculate_sentiment(cyb_data)
     sentiment_data.to_csv('cyb_sentiment.csv')
-    print("数据已更新保存至: cyb_sentiment.csv")
+print("数据已更新保存至: cyb_sentiment.csv")
+
