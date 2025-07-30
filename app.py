@@ -57,7 +57,7 @@ with st.expander("📖 用户操作指导", expanded=True):
     
     <div class="instruction-step">
         <h4> 查看数据点</h4>
-        <p>鼠标悬停在图表或点击上可查看详细数据</p>
+        <p>鼠标悬停在曲线上或点击曲线可查看详细数据</p>
     </div>
     
     <div class="instruction-step">
