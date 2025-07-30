@@ -42,7 +42,7 @@ with st.expander("📖 图表交互操作指南", expanded=True):
     
     <div class="instruction-step">
         <h4>选择时间范围</h4>
-        <p>在屏幕左侧侧边栏选择</p>
+        <p>在屏幕左上角展开侧边栏</p>
     </div>
     
     <div class="instruction-step">
