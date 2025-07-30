@@ -24,6 +24,49 @@ st.set_page_config(
 st.title("📈 创业板指情绪指数分析")
 st.markdown("基于市场行为量化贪婪与恐惧情绪")
 
+
+with st.expander("📖 图表交互操作指南", expanded=True):
+    st.markdown("""
+    <style>
+    .instruction-img {
+        max-width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 5px;
+        margin: 10px 0;
+    }
+    .instruction-step {
+        margin-bottom: 15px;
+    }
+    </style>
+    
+    <div class="instruction-step">
+        <h4>选择时间范围</h4>
+        <p>在屏幕左侧侧边栏选择</p>
+    </div>
+    
+    <div class="instruction-step">
+        <h4>🔍 缩放图表</h4>
+        <p>在图表上拖动鼠标或手指滑动，选择矩形区域进行放大</p>
+    </div>
+    
+    <div class="instruction-step">
+        <h4>↔️ 在图表中缩小图表时间范围</h4>
+        <p>按住鼠标左键或手指滑动，水平左右拖动可快捷缩小时间范围</p>
+    </div>
+    
+    <div class="instruction-step">
+        <h4> 查看数据点</h4>
+        <p>鼠标悬停在图表或点击上可查看详细数据</p>
+    </div>
+    
+    <div class="instruction-step">
+        <h4> 重置视图</h4>
+        <p>双击图表可重置为原始视图</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # 加载数据
 @st.cache_data
 def load_data():
@@ -31,11 +74,31 @@ def load_data():
 
 df = load_data()
 
+# 计算默认日期范围
+default_end_date = df['date'].max()
+default_start_date = default_end_date - pd.DateOffset(months=2)
+
+# 确保开始日期不早于数据最早日期
+if default_start_date < df['date'].min():
+    default_start_date = df['date'].min()
+
+
 # 侧边栏控制
 st.sidebar.header("控制面板")
-start_date = st.sidebar.date_input("开始日期", value=df['date'].min())
-end_date = st.sidebar.date_input("结束日期", value=df['date'].max())
+start_date = st.sidebar.date_input(
+    "开始日期", 
+    value=default_start_date.to_pydatetime().date(),
+    min_value=df['date'].min().to_pydatetime().date(),
+    max_value=df['date'].max().to_pydatetime().date()
+)
+end_date = st.sidebar.date_input(
+    "结束日期", 
+    value=default_end_date.to_pydatetime().date(),
+    min_value=df['date'].min().to_pydatetime().date(),
+    max_value=df['date'].max().to_pydatetime().date()
+)
 show_table = st.sidebar.checkbox("显示原始数据", value=True)
+
 
 # 过滤数据
 filtered_df = df[(df['date'] >= pd.Timestamp(start_date)) & 

@@ -39,7 +39,7 @@ def calculate_sentiment(df):
             df['vol_ratio'] * abs(df['pct_change']),  # 放量下跌增强
             0
         )
-    ) * 40 + 45   # 调整系数增强变化幅度
+    ) * 40 + 48   # 调整系数增强变化幅度
     
     # 限制范围
     df['greed'] = df['greed'].clip(0, 100)
