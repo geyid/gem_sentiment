@@ -1,0 +1,29 @@
+# Python 字节码缓存
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Jupyter Notebook 检查点
+.ipynb_checkpoints/
+
+# 虚拟环境（根据你用的名称）
+.venv/
+env/
+venv/
+
+# VS Code 设置（可选）
+.vscode/
+
+# 数据文件（可选）
+*.csv
+*.xlsx
+*.h5
+
+# 日志和调试信息（可选）
+*.log
+*.tmp
+
+# 系统文件（Mac/Windows）
+.DS_Store
+Thumbs.db
