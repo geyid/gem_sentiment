@@ -25,7 +25,7 @@ def calculate_sentiment(df):
         0.4 * np.tanh(3 * df['pct_change'].rolling(window=5).mean()) +
         0.3 * np.sign(df['vol_ratio']) * (np.abs(df['vol_ratio']))**1.5 +
         0.3 * (df['high'] / df['close'].rolling(window=10).max())**2
-    ) * 40 + 45
+    ) * 40 + 40
     
     # 恐惧指数优化（大幅提高灵敏度）
     # 1. 增加波动率的权重和非线性放大
