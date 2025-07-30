@@ -59,7 +59,6 @@ with st.expander("📖 用户操作指导", expanded=True):
     </div>
     """, unsafe_allow_html=True)
 
-@st.cache_data
 def load_data():
     return pd.read_csv(
         "https://raw.githubusercontent.com/geyid/gem_sentiment/main/cyb_sentiment.csv",

@@ -25,27 +25,55 @@ def calculate_sentiment(df):
         0.4 * np.tanh(3 * df['pct_change'].rolling(window=5).mean()) +
         0.3 * np.sign(df['vol_ratio']) * (np.abs(df['vol_ratio']))**1.5 +
         0.3 * (df['high'] / df['close'].rolling(window=10).max())**2
-    ) * 40 + 40
+    ) * 40 + 45
     
-    # 恐惧指数优化（大幅提高灵敏度）
-    # 1. 增加波动率的权重和非线性放大
-    # 2. 引入放量下跌因子
-    # 3. 添加相对强度指标
-    df['fear'] = (
-        0.4 * (1 - (df['low'] / df['close'].rolling(window=10).min()))**3 +  # 立方放大低点效应
-        0.4 * (df['volatility'] / df['volatility'].mean())**1.5 +  # 波动率非线性放大
-        0.2 * np.where(
-            (df['pct_change'] < 0) & (df['vol_ratio'] > 1),
-            df['vol_ratio'] * abs(df['pct_change']),  # 放量下跌增强
-            0
-        )
-    ) * 40 + 54  # 调整系数增强变化幅度
+    # ============ 恐惧指数计算 - 修复了KeyError问题 ============
+    
+    # 1. 增强低点检测灵敏度（使用对数放大）
+    low_ratio = np.log1p(1 - (df['low'] / df['close'].rolling(window=10).min()))**2
+    
+    # 2. 强化波动率影响（指数放大）
+    vol_factor = (df['volatility'] / df['volatility'].mean())**2.5
+    
+    # 3. 放量下跌增强因子（非线性放大）- 修复括号问题
+    down_factor = np.where(
+        (df['pct_change'] < 0) & (df['vol_ratio'] > 1),
+        (df['vol_ratio']**1.3) * (abs(df['pct_change'])**1.5),
+        0
+    )
+    
+    # 4. 新增恐慌扩散因子（市场恐慌情绪扩散效应）
+    panic_spread = np.where(
+        (df['pct_change'] < -1.5) & (df['pct_change'].shift(1) < -1.5),
+        0.5 * (abs(df['pct_change'].rolling(window=3).sum())**0.7),
+        0
+    )
+    
+    # 5. 计算初始恐惧指数（不使用动量因子）
+    df['fear_initial'] = (
+        0.35 * low_ratio +      # 低点效应
+        0.30 * vol_factor +     # 波动率因子
+        0.25 * down_factor +    # 放量下跌因子
+        0.10 * panic_spread     # 恐慌扩散因子
+    ) * 55 + 30
+    
+    # 6. 添加市场情绪惯性因子（使用初始恐惧指数）
+    momentum_factor = df['fear_initial'].shift(1) * 0.3 * np.sign(df['pct_change'])
+    
+    # 7. 组合所有因子创建最终恐惧指数
+    df['fear'] = df['fear_initial'] + momentum_factor
+    
+    # 删除临时列
+    df = df.drop(columns=['fear_initial'])
+    
+    # ============ 结束恐惧指数计算 ============
     
     # 限制范围
     df['greed'] = df['greed'].clip(0, 100)
     df['fear'] = df['fear'].clip(0, 100)
     
     return df.dropna()
+
 
 # 新增的 update_data 函数
 def update_data():
