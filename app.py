@@ -3,10 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-# 直接计算实时数据（推荐做法）
-from sentiment_calculator import get_cyb_data, calculate_sentiment
-
-df = calculate_sentiment(get_cyb_data())
 
 
 
@@ -63,11 +59,13 @@ with st.expander("📖 用户操作指导", expanded=True):
     </div>
     """, unsafe_allow_html=True)
 
-
-# 加载数据
 @st.cache_data
 def load_data():
-    return pd.read_csv('cyb_sentiment.csv', parse_dates=['date'])
+    return pd.read_csv(
+        "https://raw.githubusercontent.com/geyid/gem_sentiment/main/cyb_sentiment.csv",
+        parse_dates=['date']
+    )
+
 
 df = load_data()
 
