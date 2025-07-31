@@ -7,11 +7,6 @@ import plotly.graph_objects as go
 
 
 
-st.set_page_config(
-    page_title="创业板指情绪指数",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # 标题
 st.title("📈 创业板指情绪指数分析")
@@ -35,11 +30,11 @@ with st.expander("📖 用户操作指导", expanded=True):
     
     <div class="instruction-step">
         <h4>选择时间范围</h4>
-        <p>在屏幕左上角展开侧边栏</p>
+        <p>拖动页面上方的滑块选择日期范围</p>
     </div>
     
     <div class="instruction-step">
-        <h4>🔍 缩放图表</h4>
+        <h4> 缩放图表</h4>
         <p>在图表上拖动鼠标或手指滑动，选择矩形区域进行放大</p>
     </div>
     
@@ -68,35 +63,37 @@ def load_data():
 
 df = load_data()
 
-# 计算默认日期范围
-default_end_date = df['date'].max()
-default_start_date = default_end_date - pd.DateOffset(months=2)
-
-# 确保开始日期不早于数据最早日期
-if default_start_date < df['date'].min():
-    default_start_date = df['date'].min()
 
 
-# 侧边栏控制
+
+
+# 确保日期格式正确
+df['date'] = pd.to_datetime(df['date'])
+
+# 侧边栏控制 - 只保留"显示原始数据"选项
 st.sidebar.header("控制面板")
-start_date = st.sidebar.date_input(
-    "开始日期", 
-    value=default_start_date.to_pydatetime().date(),
-    min_value=df['date'].min().to_pydatetime().date(),
-    max_value=df['date'].max().to_pydatetime().date()
-)
-end_date = st.sidebar.date_input(
-    "结束日期", 
-    value=default_end_date.to_pydatetime().date(),
-    min_value=df['date'].min().to_pydatetime().date(),
-    max_value=df['date'].max().to_pydatetime().date()
-)
 show_table = st.sidebar.checkbox("显示原始数据", value=True)
 
+# 获取日期范围
+min_date = df['date'].min().date()
+max_date = df['date'].max().date()
 
-# 过滤数据
+
+ #添加日期范围滑块
+st.subheader("选择日期范围")
+selected_range = st.slider(
+    "拖动滑块调整时间范围：",
+    min_value=min_date,
+    max_value=max_date,
+    value=(min_date, max_date),
+    format="YYYY-MM-DD"
+)
+ #过滤数据
+start_date, end_date = selected_range
 filtered_df = df[(df['date'] >= pd.Timestamp(start_date)) & 
                 (df['date'] <= pd.Timestamp(end_date))]
+
+
 
 # 情绪指数折线图 - 分成两个独立图表
 col1, col2 = st.columns(2)
@@ -118,11 +115,11 @@ with col1:
         yaxis_range=[20, 100],
         hovermode="x"
     )
-    st.plotly_chart(fig_greed, use_container_width=True)
+    st.plotly_chart(fig_greed, use_container_width=True, config={"displayModeBar": False})
 
 with col2:
     st.subheader("恐惧指数趋势")
-    fig_fear = go.Figure()
+    fig_fear = go.Figure()                                                                          
     fig_fear.add_trace(go.Scatter(
         x=filtered_df['date'], y=filtered_df['fear'],
         mode='lines', name='恐惧指数', line=dict(color='red', width=2)
@@ -137,7 +134,7 @@ with col2:
         yaxis_range=[20, 100],
         hovermode="x"
     )
-    st.plotly_chart(fig_fear, use_container_width=True)
+    st.plotly_chart(fig_fear, use_container_width=True, config={"displayModeBar": False})
 
 # 指数与价格对比
 st.subheader("情绪指数与创业板指价格对比")
@@ -150,7 +147,7 @@ with col1:
         labels={'greed': '贪婪指数', 'close': '收盘价'},
         title="贪婪指数 vs 价格"
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
 
 with col2:
     fig3 = px.scatter(
@@ -159,7 +156,13 @@ with col2:
         labels={'fear': '恐惧指数', 'close': '收盘价'},
         title="恐惧指数 vs 价格"
     )
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+
+
+
+
+
+
 
 # 数据表格
 if show_table:
@@ -210,3 +213,7 @@ st.markdown("""
   - **中性区域（恐惧指数55-70）**：市场情绪平稳
   - **淡定区域（恐惧指数 < 55）**：市场恐慌情绪缓解
 """)
+
+
+
+

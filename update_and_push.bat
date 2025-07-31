@@ -17,8 +17,8 @@ if errorlevel 1 (
 )
 
 echo [STEP 2] Git commit and push...
-git add cyb_sentiment.csv
-git commit -m "📈 Update sentiment data %date% %time%"
+git add .
+git commit -m "Update sentiment data %date% %time%"
 git push
 
 echo [DONE] Successfully pushed to GitHub!
