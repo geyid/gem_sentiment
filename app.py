@@ -31,8 +31,15 @@ with st.expander("📖 用户操作指导", expanded=True):
     <div class="instruction-step">
         <h4>选择时间范围</h4>
         <p>拖动页面上方的滑块选择日期范围</p>
+   
+                
+     </div>
+        <div class="instruction-step">
+        <h4>↔️ 在图表中缩小图表时间范围</h4>
+        <p>按住鼠标左键或手指滑动，水平左右拖动可快捷缩小时间范围</p>
     </div>
-    
+                
+
     <div class="instruction-step">
         <h4> 缩放图表</h4>
         <p>在图表上拖动鼠标或手指滑动，选择矩形区域进行放大</p>
