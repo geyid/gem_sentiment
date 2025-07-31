@@ -84,13 +84,19 @@ max_date = df['date'].max().date()
 
  #添加日期范围滑块
 st.subheader("选择日期范围")
+import datetime  # 确保在顶部引入
+
 selected_range = st.slider(
     "拖动滑块调整时间范围：",
     min_value=min_date,
     max_value=max_date,
-    value=(min_date, max_date),
+    value=(
+        max_date - datetime.timedelta(days=120),  # 默认起始：60天前
+        max_date                                 # 默认结束：今天（或数据最大日期）
+    ),
     format="YYYY-MM-DD"
 )
+
  #过滤数据
 start_date, end_date = selected_range
 filtered_df = df[(df['date'] >= pd.Timestamp(start_date)) & 
