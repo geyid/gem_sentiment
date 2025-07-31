@@ -35,7 +35,7 @@ with st.expander("📖 用户操作指导", expanded=True):
                 
      </div>
         <div class="instruction-step">
-        <h4>↔️ 在图表中缩小图表时间范围</h4>
+        <h4>↔️ 图表中缩小时间范围</h4>
         <p>按住鼠标左键或手指滑动，水平左右拖动可快捷缩小时间范围</p>
     </div>
                 
@@ -45,10 +45,6 @@ with st.expander("📖 用户操作指导", expanded=True):
         <p>在图表上拖动鼠标或手指滑动，选择矩形区域进行放大</p>
     </div>
     
-    <div class="instruction-step">
-        <h4>↔️ 在图表中缩小图表时间范围</h4>
-        <p>按住鼠标左键或手指滑动，水平左右拖动可快捷缩小时间范围</p>
-    </div>
     
     <div class="instruction-step">
         <h4> 查看数据点</h4>
