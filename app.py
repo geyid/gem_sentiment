@@ -155,36 +155,39 @@ with col2:
 if show_table:
     st.subheader("历史情绪数据")
     st.dataframe(
-        filtered_df[['date', 'close', 'greed', 'fear', 'volatility']].rename(columns={
+        filtered_df[['date', 'close', 'greed', 'fear', ]].rename(columns={
             'date': '日期',
             'close': '收盘价',
             'greed': '贪婪指数',
             'fear': '恐惧指数',
-            'volatility': '波动率'
+            
         }),
         height=400,
         use_container_width=True
     )
 
+
 # 最新情绪状态
-latest = filtered_df.iloc[-1]
-st.subheader("当前市场情绪状态")
-col1, col2, col3 = st.columns(3)
+if not filtered_df.empty:
+    latest = filtered_df.iloc[-1]
+    st.subheader("当前市场情绪状态")
+    col1, col2, col3 = st.columns(3)
 
 # 贪婪指数状态（保持不变）
-col1.metric("贪婪指数", f"{latest['greed']:.1f}",
+    col1.metric("贪婪指数", f"{latest['greed']:.1f}",
            "极度贪婪" if latest['greed'] > 85 else
            "贪婪" if latest['greed'] > 70 else
            "中性" if latest['greed'] > 55 else "谨慎")
 
 # 恐惧指数状态（修正逻辑）
-col2.metric("恐惧指数", f"{latest['fear']:.1f}",
+    col2.metric("恐惧指数", f"{latest['fear']:.1f}",
            "极度恐惧" if latest['fear'] > 85 else
            "恐惧" if latest['fear'] > 70 else
            "中性" if latest['fear'] > 55 else "镇定")
 
-col3.metric("创业板指", f"{latest['close']:.2f}",
-           f"{latest['pct_change']:.2f}%")
+# 安全计算涨跌幅
+    pct_change = latest['pct_change'] if 'pct_change' in latest and not pd.isna(latest['pct_change']) else 0
+    col3.metric("创业板指", f"{latest['close']:.2f}", f"{pct_change:.2f}%")
 
 # 解释说明（修正恐惧指数区域定义）
 st.markdown("""
