@@ -13,13 +13,13 @@ def get_cyb_data():
     return cyb_df
 
 def zscore(series):
-    return (series - series.mean()) / (series.std() + 1e-9)  # 避免除以0
+    return (series - series.mean()) / (series.std() + 1e-9)
 
 def calculate_sentiment(df):
     # 计算技术指标
     df['k'], df['d'] = talib.STOCH(df['high'], df['low'], df['close'], 9, 3, 3)
     df['j'] = 3 * df['k'] - 2 * df['d']
-    
+
     df['boll_upper'], df['boll_mid'], df['boll_lower'] = talib.BBANDS(df['close'], 20, 2, 2)
 
     df['vol_ma10'] = talib.MA(df['volume'], timeperiod=10)
@@ -32,41 +32,36 @@ def calculate_sentiment(df):
 
     df['macd'], df['macd_signal'], df['macd_hist'] = talib.MACD(df['close'], 12, 26, 9)
 
-    # ========== 改进评分系统 ==========
+    # ======== 评分系统（低灵敏度） ========
 
-    # 1. KDJ 变化评分
     df['j_diff'] = df['j'].diff()
-    df['kdj_score'] = 0.5 + 0.5 * np.tanh(df['j_diff'] * 5)
+    df['kdj_score'] = 0.5 + 0.5 * np.tanh(df['j_diff'] * 1.2)
 
-    # 2. MACD 变化评分
     df['macd_diff'] = df['macd_hist'].diff()
-    df['macd_score'] = 0.5 + 0.5 * np.tanh(df['macd_diff'] * 10)
+    df['macd_score'] = 0.5 + 0.5 * np.tanh(df['macd_diff'] * 1.5)
 
-    # 3. RSI 变化评分
     df['rsi_diff'] = df['rsi'].diff()
-    df['rsi_score'] = 0.5 + 0.5 * np.tanh(df['rsi_diff'] * 5)
+    df['rsi_score'] = 0.5 + 0.5 * np.tanh(df['rsi_diff'] * 1.2)
 
-    # 4. 成交量 Z-score 放大评分
-    df['vol_score'] = np.clip(zscore(df['vol_ratio']) / 2 + 0.5, 0, 1)
+    df['vol_score'] = np.clip(zscore(df['vol_ratio']) / 6 + 0.5, 0, 1)
 
-    # 5. BOLL 位置评分（更极端的位置偏移）
     df['boll_score'] = np.select(
         [df['close'] > df['boll_upper'], df['close'] < df['boll_lower']],
         [1.0, 0.0],
         default=0.5
     )
 
-    # 6. 均线评分
     df['ma_score'] = np.where(
         (df['close'] > df['ma5']) & (df['close'] > df['ma10']),
         1.0,
         np.where((df['close'] < df['ma5']) & (df['close'] < df['ma10']), 0.0, 0.5)
     )
 
-    # 波动率（振幅）参与评分修饰因子
+    # 可选波动修正，改为非常轻微
     df['volatility'] = (df['high'] - df['low']) / (df['close'] + 1e-9)
+    volatility_boost = (1 + df['volatility'] * 0.3)
 
-    # 加权组合（波动放大）
+    # 贪婪指数
     df['greed'] = (
         df['kdj_score'] * 0.25 +
         df['macd_score'] * 0.2 +
@@ -74,9 +69,9 @@ def calculate_sentiment(df):
         df['rsi_score'] * 0.15 +
         df['boll_score'] * 0.1 +
         df['ma_score'] * 0.1
-    ) * (1 + df['volatility'] * 1.5) * 100
+    ) * volatility_boost * 100
 
-    # 恐惧指数（反向评分）
+    # 恐惧指数（反向）
     df['fear'] = (
         (1 - df['kdj_score']) * 0.25 +
         (1 - df['macd_score']) * 0.2 +
@@ -84,13 +79,17 @@ def calculate_sentiment(df):
         (1 - df['rsi_score']) * 0.15 +
         (1 - df['boll_score']) * 0.1 +
         (1 - df['ma_score']) * 0.1
-    ) * (1 + df['volatility'] * 1.5) * 100
+    ) * volatility_boost * 100
 
-    # 限制范围
+    # 平滑处理（可调）
+    df['greed'] = df['greed'].ewm(span=3).mean()
+    df['fear'] = df['fear'].ewm(span=3).mean()
+
+    # 限制在0~100
     df['greed'] = df['greed'].clip(0, 100)
     df['fear'] = df['fear'].clip(0, 100)
 
-    # 清理
+    # 清理临时列
     cols_to_drop = [col for col in df.columns if 'score' in col or col.endswith('_diff') or col == 'volatility']
     return df.drop(columns=cols_to_drop).dropna()
 
