@@ -85,6 +85,9 @@ def calculate_sentiment(df):
     df['greed'] = df['greed'].ewm(span=3).mean()
     df['fear'] = df['fear'].ewm(span=3).mean()
 
+    #增加平均值
+    df['greed'] = df['greed'] + 5
+    df['fear'] = df['fear'] + 5
     # 限制在0~100
     df['greed'] = df['greed'].clip(0, 100)
     df['fear'] = df['fear'].clip(0, 100)
