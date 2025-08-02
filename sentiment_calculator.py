@@ -1,6 +1,7 @@
 import akshare as ak
 import pandas as pd
 import numpy as np
+import talib
 
 def get_cyb_data():
     """获取创业板指历史数据"""
@@ -10,69 +11,111 @@ def get_cyb_data():
     return cyb_df
 
 def calculate_sentiment(df):
-    """计算贪婪与恐惧指数"""
-    # 计算价格变动
-    df['pct_change'] = df['close'].pct_change() * 100
+    """基于技术指标计算贪婪与恐惧指数"""
+    # 1. 计算所需技术指标
+    # KDJ指标
+    df['k'], df['d'] = talib.STOCH(df['high'], df['low'], df['close'], 
+                                  fastk_period=9, slowk_period=3, slowd_period=3)
+    df['j'] = 3 * df['k'] - 2 * df['d']
     
-    # 计算波动率 (10日标准差)
-    df['volatility'] = df['pct_change'].rolling(window=10).std()
+    # BOLL指标
+    df['boll_mid'] = talib.MA(df['close'], timeperiod=20)
+    df['boll_upper'], df['boll_mid'], df['boll_lower'] = talib.BBANDS(
+        df['close'], timeperiod=20, nbdevup=2, nbdevdn=2)
     
-    # 计算成交量波动率
-    df["vol_ratio"] = df['volume'] / df['volume'].rolling(window=10).mean()
+    # 成交量指标
+    df['vol_ma5'] = talib.MA(df['volume'], timeperiod=5)
+    df['vol_ma10'] = talib.MA(df['volume'], timeperiod=10)
+    df['vol_ratio'] = df['volume'] / df['vol_ma10']
     
-    # 贪婪指数（保持不变）
-    df['greed'] = (
-        0.4 * np.tanh(3 * df['pct_change'].rolling(window=5).mean()) +
-        0.3 * np.sign(df['vol_ratio']) * (np.abs(df['vol_ratio']))**1.5 +
-        0.3 * (df['high'] / df['close'].rolling(window=10).max())**2
-    ) * 40 + 40
+    # 均线系统
+    df['ma5'] = talib.MA(df['close'], timeperiod=5)
+    df['ma10'] = talib.MA(df['close'], timeperiod=10)
+    df['ma_cross'] = np.where(df['ma5'] > df['ma10'], 1, -1)
     
-    # ============ 恐惧指数计算 - 修复了KeyError问题 ============
+    # RSI指标
+    df['rsi'] = talib.RSI(df['close'], timeperiod=14)
     
-    # 1. 增强低点检测灵敏度（使用对数放大）
-    low_ratio = np.log1p(1 - (df['low'] / df['close'].rolling(window=10).min()))**2
+    # MACD指标
+    df['macd'], df['macd_signal'], df['macd_hist'] = talib.MACD(
+        df['close'], fastperiod=12, slowperiod=26, signalperiod=9)
     
-    # 2. 强化波动率影响（指数放大）
-    vol_factor = (df['volatility'] / df['volatility'].mean())**2.5
-    
-    # 3. 放量下跌增强因子（非线性放大）- 修复括号问题
-    down_factor = np.where(
-        (df['pct_change'] < 0) & (df['vol_ratio'] > 1),
-        (df['vol_ratio']**1.3) * (abs(df['pct_change'])**1.5),
-        0
+    # 2. 计算各指标分数
+    # KDJ评分 (25%)
+    df['kdj_score'] = np.select(
+        [df['j'] < 20, df['j'] > 80, (df['j'] >= 20) & (df['j'] <= 80)],
+        [1, 0, 0.5], default=0.5
     )
     
-    # 4. 新增恐慌扩散因子（市场恐慌情绪扩散效应）
-    panic_spread = np.where(
-        (df['pct_change'] < -1.5) & (df['pct_change'].shift(1) < -1.5),
-        0.5 * (abs(df['pct_change'].rolling(window=3).sum())**0.7),
-        0
+    # BOLL评分 (20%)
+    df['boll_score'] = np.select(
+        [df['close'] > df['boll_upper'], 
+         df['close'] < df['boll_lower'],
+         (df['close'] >= df['boll_lower']) & (df['close'] <= df['boll_upper'])],
+        [1, 0, 0.5], default=0.5
     )
     
-    # 5. 计算初始恐惧指数（不使用动量因子）
-    df['fear_initial'] = (
-        0.35 * low_ratio +      # 低点效应
-        0.30 * vol_factor +     # 波动率因子
-        0.25 * down_factor +    # 放量下跌因子
-        0.10 * panic_spread     # 恐慌扩散因子
-    ) * 55 + 49
+    # 成交量评分 (20%)
+    df['vol_score'] = np.tanh(df['vol_ratio'] - 1) * 0.5 + 0.5
     
-    # 6. 添加市场情绪惯性因子（使用初始恐惧指数）
-    momentum_factor = df['fear_initial'].shift(1) * 0.3 * np.sign(df['pct_change'])
+    # 均线系统评分 (15%)
+    df['ma_score'] = np.where(
+        (df['close'] > df['ma5']) & (df['close'] > df['ma10']), 
+        1, 
+        np.where((df['close'] < df['ma5']) & (df['close'] < df['ma10']), 0, 0.5)
+    )
     
-    # 7. 组合所有因子创建最终恐惧指数
-    df['fear'] = df['fear_initial'] + momentum_factor
+    # RSI评分 (10%)
+    df['rsi_score'] = np.interp(df['rsi'], [30, 70], [0, 1]).clip(0, 1)
     
-    # 删除临时列
-    df = df.drop(columns=['fear_initial'])
+    # MACD评分 (10%)
+    df['macd_score'] = np.where(
+        df['macd_hist'] > 0, 
+        np.interp(df['macd_hist'], [0, df['macd_hist'].quantile(0.9)], [0.5, 1]),
+        np.interp(df['macd_hist'], [df['macd_hist'].quantile(0.1), 0], [0, 0.5])
+    )
     
-    # ============ 结束恐惧指数计算 ============
+    # 3. 计算加权贪婪指数
+    weights = {
+        'kdj_score': 0.25,
+        'boll_score': 0.20,
+        'vol_score': 0.20,
+        'ma_score': 0.15,
+        'rsi_score': 0.10,
+        'macd_score': 0.10
+    }
+    
+    df['greed'] = sum(df[score] * weight for score, weight in weights.items()) * 100
+    
+    # 4. 计算恐惧指数（使用相同的指标但反向评分）
+    fear_weights = weights.copy()
+    # 对部分指标进行反向处理
+    df['fear_kdj'] = 1 - df['kdj_score']
+    df['fear_boll'] = 1 - df['boll_score']
+    df['fear_vol'] = 1 - df['vol_score']
+    df['fear_ma'] = 1 - df['ma_score']
+    # RSI和MACD保持原权重方向
+    
+    df['fear'] = (
+        df['fear_kdj'] * fear_weights['kdj_score'] +
+        df['fear_boll'] * fear_weights['boll_score'] +
+        df['fear_vol'] * fear_weights['vol_score'] +
+        df['fear_ma'] * fear_weights['ma_score'] +
+        df['rsi_score'] * fear_weights['rsi_score'] +
+        df['macd_score'] * fear_weights['macd_score']
+    ) * 100
+    
+    # 5. 平滑处理
+    df['greed'] = df['greed'].ewm(span=5).mean()
+    df['fear'] = df['fear'].ewm(span=5).mean()
     
     # 限制范围
     df['greed'] = df['greed'].clip(0, 100)
     df['fear'] = df['fear'].clip(0, 100)
     
-    return df.dropna()
+    # 清理临时列
+    cols_to_drop = [col for col in df.columns if 'score' in col or 'fear_' in col]
+    return df.drop(columns=cols_to_drop).dropna()
 
 
 # 新增的 update_data 函数

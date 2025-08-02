@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-
+import datetime
 
 
 
@@ -78,13 +78,13 @@ st.sidebar.header("控制面板")
 show_table = st.sidebar.checkbox("显示原始数据", value=True)
 
 # 获取日期范围
-min_date = df['date'].min().date()
+min_date = max(df['date'].min().date(), datetime.date(2020, 1, 1))  # 限制最早日期为2020-01-01
 max_date = df['date'].max().date()
 
 
  #添加日期范围滑块
 st.subheader("选择日期范围")
-import datetime  # 确保在顶部引入
+  # 确保在顶部引入
 
 selected_range = st.slider(
     "拖动滑块调整时间范围：",
@@ -112,10 +112,10 @@ with col1:
     fig_greed = go.Figure()
     fig_greed.add_trace(go.Scatter(
         x=filtered_df['date'], y=filtered_df['greed'],
-        mode='lines', name='贪婪指数', line=dict(color='green', width=2)
+        mode='lines', name='贪婪指数', line=dict(color='red', width=2)
     ))
     # 添加贪婪区域标注（正确区间：70-100）
-    fig_greed.add_hrect(y0=70, y1=100, fillcolor="lightgreen", opacity=0.2,
+    fig_greed.add_hrect(y0=70, y1=100, fillcolor="lightcoral", opacity=0.2,
                       annotation_text="贪婪区域", annotation_position="top left")
     fig_greed.update_layout(
         height=400,
@@ -131,10 +131,10 @@ with col2:
     fig_fear = go.Figure()                                                                          
     fig_fear.add_trace(go.Scatter(
         x=filtered_df['date'], y=filtered_df['fear'],
-        mode='lines', name='恐惧指数', line=dict(color='red', width=2)
+        mode='lines', name='恐惧指数', line=dict(color='green', width=2)
     ))
     # 添加恐惧区域标注（正确区间：70-100）
-    fig_fear.add_hrect(y0=70, y1=100, fillcolor="lightcoral", opacity=0.2,
+    fig_fear.add_hrect(y0=70, y1=100, fillcolor="lightgreen", opacity=0.2,
                      annotation_text="恐惧区域", annotation_position="top left")
     fig_fear.update_layout(
         height=400,
@@ -144,28 +144,6 @@ with col2:
         hovermode="x"
     )
     st.plotly_chart(fig_fear, use_container_width=True, config={"displayModeBar": False})
-
-# 指数与价格对比
-st.subheader("情绪指数与创业板指价格对比")
-col1, col2 = st.columns(2)
-
-with col1:
-    fig2 = px.scatter(
-        filtered_df, x='greed', y='close',
-        trendline="ols", color='volatility',
-        labels={'greed': '贪婪指数', 'close': '收盘价'},
-        title="贪婪指数 vs 价格"
-    )
-    st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
-
-with col2:
-    fig3 = px.scatter(
-        filtered_df, x='fear', y='close',
-        trendline="ols", color='volatility',
-        labels={'fear': '恐惧指数', 'close': '收盘价'},
-        title="恐惧指数 vs 价格"
-    )
-    st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
 
 
 
